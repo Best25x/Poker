@@ -4,7 +4,7 @@ import numpy as np
 
 #   parameters
 players = {}
-player_count = 5
+player_count = 2
 start_wealth = 100
 
 
@@ -152,7 +152,36 @@ class Player:
     def print_hand(self):
         for card in self.hand:
             card.print_card()
-    def bet(self):
+
+    def make_move(self):
+        while True:
+            move = input("Make a move: (1=bet, 2=check/call, 3=fold): ")
+            if type(move) is int and move > 0 and move <= 3:
+                break
+        if move == 1:
+            self.bet_raise()
+        elif move == 2:
+            self.check_call()
+        elif move == 3:
+            self.fold()
+
+
+    def bet_raise(self):
+        while True:
+            bet = input("How much do you want to bet/raise? ")
+            try:
+                int(bet)
+            except ValueError:
+                pass
+            else:
+                break
+        self.wealth -= bet
+        return bet
+
+    def check_call(self):
+        ...
+
+    def fold(self):
         ...
 
 #game
@@ -165,6 +194,9 @@ class Game:
         self.burn = burn
         self.round = round
 
+    def exec_round(self, players):
+        for player in players:
+            ...
 
 
 #   game variables
