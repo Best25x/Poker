@@ -3,9 +3,13 @@ import numpy as np
 
 
 #   parameters
-players = {}
 player_count = 2
 start_wealth = 100
+small_blind = 5
+big_blind = 10
+minimum_bid = 1
+
+players = {}
 
 
 #   card & deck generation
@@ -139,11 +143,13 @@ class Evaluator:
 
 
 #players
-class Player:
+class AI_Player:
 
-    def __init__(self, hand, wealth):
+    def __init__(self, hand, wealth, in_pool, is_folded):
         self.hand = hand
         self.wealth = wealth
+        self.in_pool = in_pool
+        self.is_folded = is_folded
 
     def generate_hand(self):
         for i in range(2):
@@ -153,63 +159,85 @@ class Player:
         for card in self.hand:
             card.print_card()
 
-    def make_move(self):
+    def make_move(self, previous_bet):
+        move = 3 #MAGIC HAPPENS
+
+        if move == 1:
+            #MORE MAGIC HAPPENS
+            bet = 0
+            self.wealth -= bet
+            self.in_pool += bet
+        elif move == 2:
+            amount = previous_bet - self.in_pool
+            self.wealth -= amount
+            self.in_pool += amount
+        elif move == 3:
+            self.is_folded = True
+
+
+class Player:
+
+    def __init__(self, hand, wealth, in_pool, is_folded):
+        self.hand = hand
+        self.wealth = wealth
+        self.in_pool = in_pool
+        self.is_folded = is_folded
+
+    def generate_hand(self):
+        for i in range(2):
+            self.hand.append(game_deck.draw_card())
+
+    def print_hand(self):
+        for card in self.hand:
+            card.print_card()
+
+    def make_move(self, previous_bet):
         while True:
             move = input("Make a move: (1=bet, 2=check/call, 3=fold): ")
             if type(move) is int and move > 0 and move <= 3:
                 break
         if move == 1:
-            self.bet_raise()
+            uhh = True
+            while uhh:
+                bet = input("How much do you want to bet/raise? ")
+                try:
+                    int(bet)
+                except ValueError:
+                    pass
+                else:
+                    uhh = False
+            self.wealth -= bet
+            self.in_pool += bet
         elif move == 2:
-            self.check_call()
+            amount = previous_bet - self.in_pool
+            self.wealth -= amount
+            self.in_pool += amount
         elif move == 3:
-            self.fold()
+            self.is_folded = True
 
 
-    def bet_raise(self):
-        while True:
-            bet = input("How much do you want to bet/raise? ")
-            try:
-                int(bet)
-            except ValueError:
-                pass
-            else:
-                break
-        self.wealth -= bet
-        return bet
-
-    def check_call(self):
-        ...
-
-    def fold(self):
-        ...
-
-#game
-
+# GAME
 class Game:
 
-    def __init__(self, pot, flop, burn, round):
+    def __init__(self, deck, pot, flop, burn, round):
+        self.deck = deck
         self.pot = pot
         self.flop = flop
         self.burn = burn
         self.round = round
 
-    def exec_round(self, players):
-        for player in players:
-            ...
+    def main(self):
+        self.deck = Deck([])
+        self.deck.generate_deck(values,suits)
+        self.deck.shuffle_deck()
+
 
 
 #   game variables
-game_deck = Deck([])
 
-for count in range(player_count):
-    players[count] = Player([],start_wealth)
-
-game_deck.generate_deck(values, suits)
-game_deck.shuffle_deck()
-
-for player in players.values():
-    player.generate_hand()
+for count in range(player_count-1):
+    players[count] = Player([],start_wealth, 0, False)
+players[player_count-1] = AI_Player([], start_wealth, 0, False)
 
 
 
