@@ -1,19 +1,18 @@
 # oh boy here we go
+
+#NOT STRESS TESTED:
+#if a player goes broke to pay blind and is requested to do so, likely breaks everything
 import numpy as np
-
-
 
 #   card & deck generation
 values = list(range(2, 15))
 suits = ['C', 'D', 'H', 'S']
 
 face_cards = {
-    10: 'T',
     11: 'J',
     12: 'Q',
     13: 'K',
     14: 'A',
-    'T': 10,
     'J': 11,
     'Q': 12,
     'K': 13,
@@ -126,10 +125,12 @@ class Evaluator:
             return int("3{:02d}00".format(Evaluator.card_count(cards, 3)))
         pair1 = Evaluator.card_count(cards,2)
         if pair1 is not None:
+            #at least one pair
             if Evaluator.card_count(cards, 2, exclude=pair1) is not None:
                 #two pair
                 return int("2{:02d}{:02d}".format(Evaluator.card_count(cards,2,exclude=pair1),Evaluator.card_count(cards,2)))
             return int("1{:02d}00".format(Evaluator.card_count(cards,2)))
+        #nothing but high card
         return int("{:02d}00".format(Evaluator.high_card(cards)))
 
 
@@ -156,7 +157,7 @@ class Player:
         for card in self.hand:
             card.print_card()
 
-    def make_move(self, previous_bet):
+    def make_move(self, top_bet):
         um = True
         while um:
             try:
@@ -180,7 +181,7 @@ class Player:
             self.in_pot += bet
 
         elif move == 2:
-            amount = previous_bet - self.in_pot
+            amount = top_bet - self.in_pot
             self.wealth -= amount
             self.in_pot += amount
 
@@ -212,18 +213,32 @@ class Game:
         self.pot = 0
         self.flop = []
         self.players = {}
-        self.round = 2
+        self.round = 1
+        self.make_players()
 
     def main(self):
-        self.make_players()
 
         dealer_id = ((self.round-1) % self.player_count) + 1 #NO 0th PLAYER
         small_blind_id = (dealer_id % self.player_count) + 1 #NO 0th PLAYER
         big_blind_id = (small_blind_id % self.player_count) + 1 #NO 0th PLAYER
-        new_line()
-        print(f"{self.players[dealer_id].name} is dealing.\n{self.players[small_blind_id].name} has to pay small blind ({Game.small_blind}).\n{self.players[big_blind_id].name} has to pay big blind ({Game.big_blind}).")
 
-        self.get_blind()
+
+        new_line()
+        print(f"(P{dealer_id}) {self.players[dealer_id].name} is dealing.")
+        while self.get_blind(Game.small_blind, self.players[small_blind_id]) == False:
+            print(f"(P{small_blind_id}) {self.players[small_blind_id].name} couldn't afford to play.")
+            small_blind_id = (small_blind_id % self.player_count) + 1
+            big_blind_id = (big_blind_id % self.player_count) + 1
+        print(f"(P{small_blind_id}) {self.players[small_blind_id].name} pays small blind ({Game.small_blind}).")
+
+        while self.get_blind(Game.big_blind, self.players[big_blind_id]) == False:
+            print(f"(P{big_blind_id}) {self.players[big_blind_id].name} couldn't afford to play.")
+            big_blind_id = (big_blind_id % self.player_count) + 1
+
+        print(f"(P{big_blind_id}) {self.players[big_blind_id].name} pays big blind ({Game.big_blind}).")
+
+
+
 
 
 
@@ -243,21 +258,30 @@ class Game:
 
     def make_players(self):
         for i in range(1,self.player_count+1): #FIRST PLAYER IS PLAYER 1 NOT 0
-            name = input(f"What is Player {i}'s name? (Type 'AI' for AI player): ")
+            #CHANGE HOW TO DETERMINE AI PLAYER
+            name = input(f"What is Player {i}'s name? (Type 'AI' for an AI player): ")
             if name == "AI":
-                self.players[i] = AI_Player()
+                self.players[i] = AI_Player(self.start_wealth, name)
             else:
                 self.players[i] = Player(self.start_wealth, name)
 
-    def get_blind(self):
-        ...
+    def get_blind(self, ante, player):
+        if player.wealth >= ante:
+            player.wealth -= ante
+            player.in_pot += ante
+            return True
+        else:
+            player.is_folded = True
+            return False
 
 def new_line():
     print("--------------------------------------")
 
 
 game = Game(5, 100) #player_count has to be >= 3
-game.main()
+running = True
+while running:
+    game.main()
 
 
 
