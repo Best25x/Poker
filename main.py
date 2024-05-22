@@ -1,4 +1,5 @@
 # oh boy here we go
+import time
 
 #NOT STRESS TESTED:
 #if a player goes broke to pay blind and is requested to do so, likely breaks everything
@@ -9,10 +10,12 @@ values = list(range(2, 15))
 suits = ['C', 'D', 'H', 'S']
 
 face_cards = {
+    10: 'T',
     11: 'J',
     12: 'Q',
     13: 'K',
     14: 'A',
+    'T': 10,
     'J': 11,
     'Q': 12,
     'K': 13,
@@ -158,25 +161,23 @@ class Player:
             card.print_card()
 
     def make_move(self, top_bet):
-        um = True
-        while um:
+        while True:
             try:
-                move = int(input("Make a move: (1=bet, 2=check/call, 3=fold): "))
+                move = int(input(f"Make a move, {self.name} (1=bet, 2=check/call, 3=fold): "))
             except ValueError:
                 print("That's not an integer. ", end="")
             else:
-                um = False
+                break
 
 
         if move == 1:
-            uhh = True
-            while uhh:
+            while True:
                 try:
                     bet = int(input("How much do you want to bet/raise? "))
                 except ValueError:
                     print("That's not an integer. ", end="")
                 else:
-                    uhh = False
+                    break
             self.wealth -= bet
             self.in_pot += bet
 
@@ -215,46 +216,75 @@ class Game:
         self.players = {}
         self.round = 1
         self.make_players()
+        self.is_running = True
+        self.top_bet = 0
 
     def main(self):
 
-        dealer_id = ((self.round-1) % self.player_count) + 1 #NO 0th PLAYER
-        small_blind_id = (dealer_id % self.player_count) + 1 #NO 0th PLAYER
-        big_blind_id = (small_blind_id % self.player_count) + 1 #NO 0th PLAYER
+        while self.is_running:
+
+            dealer_id = ((self.round-1) % self.player_count) + 1 #NO 0th PLAYER
+            small_blind_id = (dealer_id % self.player_count) + 1 #NO 0th PLAYER
+            big_blind_id = (small_blind_id % self.player_count) + 1 #NO 0th PLAYER
+            new_line()
+
+            #LOOP THROUGH BLINDS AND ELIMINATE BROKE PEOPLE
+            print(f"(P{dealer_id}) {self.players[dealer_id].name} is dealing.")
+            while self.get_blind(Game.small_blind, self.players[small_blind_id]) == False:
+                print(f"(P{small_blind_id}) {self.players[small_blind_id].name} couldn't afford to play.")
+                small_blind_id = (small_blind_id % self.player_count) + 1
+                big_blind_id = (big_blind_id % self.player_count) + 1
+            print(f"(P{small_blind_id}) {self.players[small_blind_id].name} pays small blind ({Game.small_blind}).")
+
+            while self.get_blind(Game.big_blind, self.players[big_blind_id]) == False:
+                print(f"(P{big_blind_id}) {self.players[big_blind_id].name} couldn't afford to play.")
+                big_blind_id = (big_blind_id % self.player_count) + 1
+            print(f"(P{big_blind_id}) {self.players[big_blind_id].name} pays big blind ({Game.big_blind}).")
+
+            new_line()
+
+            self.top_bet = max([self.players[id].in_pot for id in self.players])
+
+            #HAND OUT CARDS
+            for player in [play for play in self.players.values() if play.is_folded is False]: #for all players that havent folded:
+                if player.name == "AI":
+                    card = input("What is the first card you got? ")
+                    player.hand.append(self.deck.draw_card(Card(card[0], card[1])))
+                    card = input("What is the second card you got? ")
+                    player.hand.append(self.deck.draw_card(Card(card[0], card[1])))
+                else:
+                    player.hand.append(self.deck.draw_card())
+                    player.hand.append(self.deck.draw_card())
 
 
-        new_line()
-        print(f"(P{dealer_id}) {self.players[dealer_id].name} is dealing.")
-        while self.get_blind(Game.small_blind, self.players[small_blind_id]) == False:
-            print(f"(P{small_blind_id}) {self.players[small_blind_id].name} couldn't afford to play.")
-            small_blind_id = (small_blind_id % self.player_count) + 1
-            big_blind_id = (big_blind_id % self.player_count) + 1
-        print(f"(P{small_blind_id}) {self.players[small_blind_id].name} pays small blind ({Game.small_blind}).")
+            #BETTING (No Community Cards)
 
-        while self.get_blind(Game.big_blind, self.players[big_blind_id]) == False:
-            print(f"(P{big_blind_id}) {self.players[big_blind_id].name} couldn't afford to play.")
-            big_blind_id = (big_blind_id % self.player_count) + 1
+            #   everyone places a bet
+            for i in range(len([play for play in self.players.values() if play.is_folded is False])): #jesus christ this is bad.
+                ...
 
-        print(f"(P{big_blind_id}) {self.players[big_blind_id].name} pays big blind ({Game.big_blind}).")
+            #anyone who hasn't bet enough gets to call, fold, or raise
+            while not all([player.in_pot for player in self.players.values() if player.is_folded is False]):
+                for player in [play for play in self.players.values() if play.is_folded is False]:
+                    ...
 
+            #SHOWDOWN
 
 
 
+            #CHECK FOR ANOTHER ROUND
+            if not self.another_round():
+                print("Good bye.")
+                self.is_running = False #NO MORE GAMES :(
+
+            #RESET
+            for player in self.players:
+                player.is_folded = False
 
 
-        # if self.players[small_blind_id].wealth >= Game.small_blind:
-        #     self.players[small_blind_id] -= Game.small_blind
-        #     self.pot += Game.small_blind
-        # else:
-        #     ... #small has to fold and shifts over one
-        #
-        # if self.players[big_blind_id].wealth >= Game.big_blind:
-        #     self.players[big_blind_id].wealth -= Game.big_blind
-        #     self.pot += Game.big_blind
-        # else:
-        #     ... #big has to fold and shifts over one
 
-        #request small and big blind
+
+
 
     def make_players(self):
         for i in range(1,self.player_count+1): #FIRST PLAYER IS PLAYER 1 NOT 0
@@ -274,14 +304,38 @@ class Game:
             player.is_folded = True
             return False
 
+    def run_betting(self):
+        ...
+
+
+    def another_round(self):
+        print("End of Round Results:")
+        for id in self.players:
+            player = self.players[id]
+            print(f"{player.name} has {player.wealth} chips.")
+
+        while True:
+            try:
+                play_again = int(input("Would you like to play another round? (1=yes, 2=no): "))
+            except:
+                print("That's not a number. ", end="")
+            else:
+                if play_again == 1:
+                    self.round += 1
+                    return True
+                elif play_again == 2:
+                    self.is_running = False
+                    return False
+                else:
+                    print("That's not an option. ", end="")
+
+
 def new_line():
     print("--------------------------------------")
 
 
 game = Game(5, 100) #player_count has to be >= 3
-running = True
-while running:
-    game.main()
+game.main()
 
 
 
