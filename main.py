@@ -243,8 +243,6 @@ class Game:
 
             new_line()
 
-            self.top_bet = max([self.players[id].in_pot for id in self.players])
-
             #HAND OUT CARDS
             for player in [play for play in self.players.values() if play.is_folded is False]: #for all players that havent folded:
                 if player.name == "AI":
@@ -257,16 +255,23 @@ class Game:
                     player.hand.append(self.deck.draw_card())
 
 
+
+            self.update_top_bet()
             #BETTING (No Community Cards)
 
             #   everyone places a bet
-            for i in range(len([play for play in self.players.values() if play.is_folded is False])): #jesus christ this is bad.
-                ...
+            for i in self.player_count:
+                index = (big_blind_id + 1 + i) % self.player_count
+                player = self.players[index]
+                if not player.is_folded:
+                    player.get_bet()
+                    self.update_top_bet()
+                    print(f"{player.name} has bet {player.in_pot}.")
+
+
 
             #anyone who hasn't bet enough gets to call, fold, or raise
             while not all([player.in_pot for player in self.players.values() if player.is_folded is False]):
-                for player in [play for play in self.players.values() if play.is_folded is False]:
-                    ...
 
             #SHOWDOWN
 
@@ -303,6 +308,9 @@ class Game:
         else:
             player.is_folded = True
             return False
+
+    def update_top_bet(self):
+        self.top_bet = max([self.players[id].in_pot for id in self.players])
 
     def run_betting(self):
         ...
