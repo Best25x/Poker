@@ -1,26 +1,20 @@
 # oh boy here we go
-import time
+import random
+import itertools
 
-#NOT STRESS TESTED:
-#if a player goes broke to pay blind and is requested to do so, likely breaks everything
+#CARD EVALUATOR WORKS BUT APPLICATION IS BROKEN
+
 import numpy as np
+
+from Player import *
+from AiPlayer import *
+from Evaluator import *
+
 
 #   card & deck generation
 values = list(range(2, 15))
 suits = ['C', 'D', 'H', 'S']
 
-face_cards = {
-    10: 'T',
-    11: 'J',
-    12: 'Q',
-    13: 'K',
-    14: 'A',
-    'T': 10,
-    'J': 11,
-    'Q': 12,
-    'K': 13,
-    'A': 14
-}
 class Card:
 
     def __init__(self, value, suit):
@@ -28,7 +22,7 @@ class Card:
         self.suit = suit
 
     def print_card(self):
-        print(f"{self.value}{self.suit}")
+        print(f"{self.value}{self.suit}", end='')
 
 class Deck:
 
@@ -63,152 +57,16 @@ class Deck:
             card.print_card()
 
 
-class Evaluator:
-
-    @staticmethod
-    def hand_dist(cards):
-        dist = {i: 0 for i in range(1, 15)} #accounting for both ace representations
-        for card in cards:
-            dist[card.value] += 1
-        dist[1] = dist[14] #an ace can be a low ace in a a2345 straight and a high ace in a tjqka straight - two representations
-        return dist
-
-    @staticmethod
-    def high_card(cards):
-        dist = Evaluator.hand_dist(cards)
-        return max([val for val, count in dist.items() if count == 1])
-
-
-    @staticmethod
-    def flush_high_card(cards): #jank as hell but it works i think :)
-        for card in cards:
-            if cards[0].suit != card.suit:
-                return None
-        return max([card.value for card in cards])
-
-    @staticmethod
-    def straight_high_card(cards):
-        dist = Evaluator.hand_dist(cards)
-        for i in range(1,11): #low ace to 10 minimum straight values
-            if all([dist[i+k] == 1 for k in range(5)]):
-                return i+4
-        return None
-
-    @staticmethod
-    def card_count(cards, num_of_a_kind, exclude=None):
-        dist = Evaluator.hand_dist(cards)
-        for i in range(2,15):
-            if i == exclude:
-                continue
-            if dist[i] == num_of_a_kind:
-                return i
-        return None
-
-    @staticmethod
-    def eval_hand(cards): #straight+royal flush = 8+highcard; 4kind = 7+value; fullhouse = 6+high3kind+high2kind; flush = 5+value; straight = 4+highcard; 3kind = 3+value; twopair = 2+value+value; pair = 1+value; high = 0+value
-        #returns XYYZZ; X=hand id YY = high card if applicable ZZ = secondary high card if applicable (full house, two pair)
-
-        if Evaluator.straight_high_card(cards) is not None and Evaluator.flush_high_card(cards):
-            #straight flush
-            return int("8{:02d}00".format(Evaluator.straight_high_card(cards)))
-        if Evaluator.card_count(cards, 4) is not None:
-            #four of a kind
-            return int("7{:02d}00".format(Evaluator.card_count(cards, 4)))
-        if Evaluator.card_count(cards, 3) is not None and Evaluator.card_count(cards, 2) is not None:
-            #full house
-            return int("6{:02d}{:02d}".format(Evaluator.card_count(cards, 3), Evaluator.card_count(cards, 2)))
-        if Evaluator.flush_high_card(cards):
-            #flush
-            return int("5{:02d}00".format(Evaluator.flush_high_card(cards)))
-        if Evaluator.straight_high_card(cards) is not None:
-            #straight
-            return int("4{:02d}00".format(Evaluator.straight_high_card(cards)))
-        if Evaluator.card_count(cards, 3) is not None:
-            #three of a kind
-            return int("3{:02d}00".format(Evaluator.card_count(cards, 3)))
-        pair1 = Evaluator.card_count(cards,2)
-        if pair1 is not None:
-            #at least one pair
-            if Evaluator.card_count(cards, 2, exclude=pair1) is not None:
-                #two pair
-                return int("2{:02d}{:02d}".format(Evaluator.card_count(cards,2,exclude=pair1),Evaluator.card_count(cards,2)))
-            return int("1{:02d}00".format(Evaluator.card_count(cards,2)))
-        #nothing but high card
-        return int("{:02d}00".format(Evaluator.high_card(cards)))
-
-
-
-
-
-
-
-#players
-
-
-class Player:
-
-    def __init__(self, wealth, name):
-        self.wealth = wealth
-        self.name = name
-
-        self.hand = []
-        self.in_pot = 0
-        self.is_folded = False
-
-
-    def print_hand(self):
-        for card in self.hand:
-            card.print_card()
-
-    def make_move(self, top_bet):
-        while True:
-            try:
-                move = int(input(f"Make a move, {self.name} (1=bet, 2=check/call, 3=fold): "))
-            except ValueError:
-                print("That's not an integer. ", end="")
-            else:
-                break
-
-
-        if move == 1:
-            while True:
-                try:
-                    bet = int(input("How much do you want to bet/raise? "))
-                except ValueError:
-                    print("That's not an integer. ", end="")
-                else:
-                    break
-            self.wealth -= bet
-            self.in_pot += bet
-
-        elif move == 2:
-            amount = top_bet - self.in_pot
-            self.wealth -= amount
-            self.in_pot += amount
-
-        elif move == 3:
-            self.is_folded = True
-
-class AI_Player:
-
-    def __init__(self, wealth, name):
-        self.wealth = wealth
-        self.name = name
-
-        self.hand = []
-        self.in_pot = 0
-        self.is_folded = False
-
-
 
 # GAME
 class Game:
     small_blind = 5
     big_blind = 10
 
-    def __init__(self, player_count, start_wealth):
+    def __init__(self, player_count, start_wealth, is_manual):
         self.player_count = player_count
         self.start_wealth = start_wealth
+        self.is_manual = is_manual
 
         self.deck = Deck()
         self.pot = 0
@@ -217,74 +75,177 @@ class Game:
         self.round = 1
         self.make_players()
         self.is_running = True
+        self.is_round = True
         self.top_bet = 0
 
     def main(self):
-
+        #game
         while self.is_running:
 
-            dealer_id = ((self.round-1) % self.player_count) + 1 #NO 0th PLAYER
-            small_blind_id = (dealer_id % self.player_count) + 1 #NO 0th PLAYER
-            big_blind_id = (small_blind_id % self.player_count) + 1 #NO 0th PLAYER
-            new_line()
+            # RESET
+            for player in self.players.values():
+                player.is_folded = False
+                player.in_pot = 0
+                player.hand = []
+            self.is_round = True
+            self.flop = []
 
-            #LOOP THROUGH BLINDS AND ELIMINATE BROKE PEOPLE
-            print(f"(P{dealer_id}) {self.players[dealer_id].name} is dealing.")
-            while self.get_blind(Game.small_blind, self.players[small_blind_id]) == False:
-                print(f"(P{small_blind_id}) {self.players[small_blind_id].name} couldn't afford to play.")
-                small_blind_id = (small_blind_id % self.player_count) + 1
-                big_blind_id = (big_blind_id % self.player_count) + 1
-            print(f"(P{small_blind_id}) {self.players[small_blind_id].name} pays small blind ({Game.small_blind}).")
+            #round
+            if self.is_round:
 
-            while self.get_blind(Game.big_blind, self.players[big_blind_id]) == False:
-                print(f"(P{big_blind_id}) {self.players[big_blind_id].name} couldn't afford to play.")
-                big_blind_id = (big_blind_id % self.player_count) + 1
-            print(f"(P{big_blind_id}) {self.players[big_blind_id].name} pays big blind ({Game.big_blind}).")
 
-            new_line()
+                dealer_id = ((self.round -1) % self.player_count) + 1 #NO 0th PLAYER
+                small_blind_id = (dealer_id % self.player_count) + 1 #NO 0th PLAYER
+                big_blind_id = (small_blind_id % self.player_count) + 1 #NO 0th PLAYER
+                new_line()
 
-            #HAND OUT CARDS
-            for player in [play for play in self.players.values() if play.is_folded is False]: #for all players that havent folded:
-                if player.name == "AI":
-                    card = input("What is the first card you got? ")
-                    player.hand.append(self.deck.draw_card(Card(card[0], card[1])))
-                    card = input("What is the second card you got? ")
-                    player.hand.append(self.deck.draw_card(Card(card[0], card[1])))
+                #LOOP THROUGH BLINDS AND ELIMINATE BROKE PEOPLE
+                print(f"(P{dealer_id}) {self.players[dealer_id].name} is dealing.")
+                while self.get_blind(Game.small_blind, self.players[small_blind_id]) == False:
+                    print(f"(P{small_blind_id}) {self.players[small_blind_id].name} couldn't afford to play.")
+                    small_blind_id = (small_blind_id % self.player_count) + 1#NO 0th PLAYER
+                    big_blind_id = (big_blind_id % self.player_count) + 1#NO 0th PLAYER
+                print(f"(P{small_blind_id}) {self.players[small_blind_id].name} pays small blind ({Game.small_blind}).")
+
+                while self.get_blind(Game.big_blind, self.players[big_blind_id]) == False:
+                    print(f"(P{big_blind_id}) {self.players[big_blind_id].name} couldn't afford to play.")
+                    big_blind_id = (big_blind_id % self.player_count) + 1#NO 0th PLAYER
+                print(f"(P{big_blind_id}) {self.players[big_blind_id].name} pays big blind ({Game.big_blind}).")
+
+                new_line()
+
+                #HAND OUT CARDS
+                for player in [play for play in self.players.values() if play.is_folded is False]: #for all players that havent folded:
+
+                    if self.is_manual and player.name == "AI":
+                        card = input("What is the first card you got? ")
+                        player.hand.append(self.deck.draw_card(Card(card[0], card[1])))
+                        card = input("What is the second card you got? ")
+                        player.hand.append(self.deck.draw_card(Card(card[0], card[1])))
+                    else:
+                        player.hand.append(self.deck.draw_card())
+                        player.hand.append(self.deck.draw_card())
+
+
+                self.update_top_bet() #top_bet now = big blind
+
+
+                # Betting (pre flop)
+                self.run_betting(big_blind_id)
+
+                #checking winner
+                self.check_winner()
+
+            if self.is_round:
+                #flop
+                if self.is_manual:
+                    for i in range(3):
+                        card = input("What is the one of flop cards? ")
+                        rank = card[0]
+                        if card is type(int):
+                            rank = int(card[0])
+                        self.turn_card(Card(rank, card[1]))
                 else:
-                    player.hand.append(self.deck.draw_card())
-                    player.hand.append(self.deck.draw_card())
+                    for i in range(3):
+                        self.turn_card()
+
+                print(f"The flop has been drawn.\nThe community cards are now: ", end='')
+                for card in self.flop:
+                    card.print_card()
+                    print(" ", end='')
+                print()
+                new_line()
+
+                #bet flop
+                self.run_betting(big_blind_id)
+
+                #check_winner
+                self.check_winner()
+
+            if self.is_round:
+
+                #turn
+                if self.is_manual:
+                    card = input("What is the turn card? ")
+                    rank = card[0]
+                    if card is type(int):
+                        rank = int(card[0])
+                    self.turn_card(Card(rank, card[1]))
+                else:
+                    self.turn_card()
+                print(f"The turn has been drawn.\nThe community cards are now: ", end='')
+                for card in self.flop:
+                    card.print_card()
+                    print(" ", end='')
+                print()
+                new_line()
+
+                #bet turn
+                self.run_betting(big_blind_id)
+
+                # check_winner
+                self.check_winner()
+
+            if self.is_round:
+
+                #river
+                if self.is_manual:
+                    card = input("What is the river card? ")
+                    rank = card[0]
+                    if card is type(int):
+                        rank = int(card[0])
+                    self.turn_card(Card(rank, card[1]))
+                else:
+                    self.turn_card()
+
+                print(f"The flop has been drawn.\nThe community cards are now: ", end='')
+                for card in self.flop:
+                    card.print_card()
+                    print(" ", end='')
+                print()
+                new_line()
+
+                #bet river
+                self.run_betting(big_blind_id)
+
+                # check_winner
+                self.check_winner()
+
+            if self.is_round:
+
+                scores = {}
+
+
+                if self.is_manual:
+                    for id in [id for id in self.players.keys() if not self.players[id].is_folded]:
+                        player = self.players[id]
+                        if player.name != "AI":
+                            for i in range(2):
+                                card = input(f"What is one of (P{id}) {player.name}'s cards? ")
+                                rank = card[0]
+                                if card is type(int):
+                                    rank = int(card[0])
+                                player.hand[i] = Card(rank, card[1])
+                new_line()
+
+                for id in [id for id in self.players.keys() if not self.players[id].is_folded]:
+                    player = self.players[id]
+                    player.get_best_hand(self.flop)
+                    scores[id] = player.best_hand
+
+
+                # COMPARE SCORES AND DETERMINE WINNER
+                print(scores)
 
 
 
-            self.update_top_bet()
-            #BETTING (No Community Cards)
-
-            #   everyone places a bet
-            for i in self.player_count:
-                index = (big_blind_id + 1 + i) % self.player_count
-                player = self.players[index]
-                if not player.is_folded:
-                    player.get_bet()
-                    self.update_top_bet()
-                    print(f"{player.name} has bet {player.in_pot}.")
-
-
-
-            #anyone who hasn't bet enough gets to call, fold, or raise
-            while not all([player.in_pot for player in self.players.values() if player.is_folded is False]):
-
-            #SHOWDOWN
 
 
 
             #CHECK FOR ANOTHER ROUND
             if not self.another_round():
                 print("Good bye.")
-                self.is_running = False #NO MORE GAMES :(
-
-            #RESET
-            for player in self.players:
-                player.is_folded = False
+                self.is_running = False #no more game :(
 
 
 
@@ -296,7 +257,7 @@ class Game:
             #CHANGE HOW TO DETERMINE AI PLAYER
             name = input(f"What is Player {i}'s name? (Type 'AI' for an AI player): ")
             if name == "AI":
-                self.players[i] = AI_Player(self.start_wealth, name)
+                self.players[i] = AiPlayer(self.start_wealth, name)
             else:
                 self.players[i] = Player(self.start_wealth, name)
 
@@ -310,10 +271,55 @@ class Game:
             return False
 
     def update_top_bet(self):
-        self.top_bet = max([self.players[id].in_pot for id in self.players])
+        self.top_bet = max([player.in_pot for player in self.players.values()])
 
-    def run_betting(self):
-        ...
+    def run_betting(self, big_blind_id):
+        #   everyone places a bet
+        for i in range(self.player_count):
+            index = ((big_blind_id + i) % self.player_count) + 1#NO 0th PLAYER
+            player = self.players[index]
+            if not player.is_folded:
+                bet_index = player.make_move(index, self.top_bet)
+                self.update_top_bet()
+                print(f"{player.name} has {f'bet/raised to {self.top_bet}' if bet_index == 1 else f'checked/called {self.top_bet}' if bet_index == 2 else 'folded'}.")
+                new_line()
+
+        # anyone who has less than top_bet gets to call, fold, or raise further
+        players = [player.in_pot for player in self.players.values() if player.is_folded is False]
+        while not all([i == players[0] for i in players]):
+
+            index = ((index) % self.player_count) + 1
+            player = self.players[index]
+            if not player.is_folded:
+                bet_index = player.make_move(index, self.top_bet)
+                self.update_top_bet()
+                print(
+                    f"{player.name} has {f'bet/raised to {self.top_bet}' if bet_index == 1 else f'checked/called {self.top_bet}' if bet_index == 2 else 'folded'}.")
+                new_line()
+
+            players = [player.in_pot for player in self.players.values() if player.is_folded is False]
+
+        #collect bets
+        for player in [play for play in self.players.values()]:
+            self.pot += player.in_pot
+            player.in_pot = 0
+
+        self.top_bet = 0
+
+    def check_winner(self):
+        unfolded = [play for play in self.players.values() if not play.is_folded]
+        if len(unfolded) == 1:
+            #everyone but play has folded
+            winner = unfolded[0]
+            winner.wealth += self.pot
+            self.pot = 0
+            self.is_round = False
+
+    def turn_card(self, card=None):
+        if card is not None:
+            self.flop.append(card) #manual input draw
+        else:
+            self.flop.append(self.deck.draw_card())
 
 
     def another_round(self):
@@ -342,7 +348,9 @@ def new_line():
     print("--------------------------------------")
 
 
-game = Game(5, 100) #player_count has to be >= 3
+manual_game = bool(int(input("Is this a manual input game? (0 = no, 1 = yes): ")))
+print(manual_game)
+game = Game(3, 100, manual_game) #player_count has to be >= 3
 game.main()
 
 
