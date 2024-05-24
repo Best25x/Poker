@@ -226,7 +226,7 @@ class Game:
                                 if card is type(int):
                                     rank = int(card[0])
                                 player.hand[i] = Card(rank, card[1])
-                new_line()
+                    new_line()
 
                 for id in [id for id in self.players.keys() if not self.players[id].is_folded]:
                     player = self.players[id]
