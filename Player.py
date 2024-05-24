@@ -57,9 +57,12 @@ class Player:
         return move
 
     def get_best_hand(self, flop):
+        print(flop)
+        combos = []
         loc_flop = flop
         loc_flop.append(self.hand[0])
         loc_flop.append(self.hand[1])
+        print(flop)
 
         for card in loc_flop:
             try:
@@ -70,7 +73,7 @@ class Player:
         val = 0
         combos = list(itertools.combinations(loc_flop, 5))
 
-        print(combos)
+        print(len(combos))
 
         for combo in combos:
             eval = Evaluator.eval_hand(combo)
