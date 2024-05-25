@@ -80,6 +80,10 @@ class Game:
 
     def main(self):
         #game
+
+        for card in self.deck.deck:
+            card.print_card()
+
         while self.is_running:
 
             # RESET
@@ -230,7 +234,12 @@ class Game:
 
                 for id in [id for id in self.players.keys() if not self.players[id].is_folded]:
                     player = self.players[id]
-                    player.get_best_hand(self.flop)
+                    loc_flop = []
+                    for card in self.flop:
+                        card.print_card()
+                        loc_flop.append(card)
+                    print()
+                    player.get_best_hand(loc_flop)
                     scores[id] = player.best_hand
 
 
