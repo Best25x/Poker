@@ -6,14 +6,280 @@ import itertools
 
 import numpy as np
 
-from Player import *
-from AiPlayer import *
-from Evaluator import *
+
+
+
+face_cards = {
+    10: 'T',
+    11: 'J',
+    12: 'Q',
+    13: 'K',
+    14: 'A',
+    'T': 10,
+    'J': 11,
+    'Q': 12,
+    'K': 13,
+    'A': 14
+}
 
 
 #   card & deck generation
 values = list(range(2, 15))
 suits = ['C', 'D', 'H', 'S']
+
+class Evaluator:
+
+
+
+    @staticmethod
+    def hand_dist(cards):
+
+
+        dist = {i: 0 for i in range(1, 15)} #accounting for both ace representations
+
+        for card in cards:
+            dist[card.value] += 1
+        dist[1] = dist[14] #an ace can be a low ace in a a2345 straight and a high ace in a tjqka straight - two representations
+
+        return dist
+
+    @staticmethod
+    def high_card(cards):
+
+        dist = Evaluator.hand_dist(cards)
+        return max([val for val, count in dist.items() if count == 1])
+
+
+    @staticmethod
+    def flush_high_card(cards): #jank as hell but it works i think :)
+
+        for card in cards:
+            if cards[0].suit != card.suit:
+                return None
+        return max([card.value for card in cards])
+
+    @staticmethod
+    def straight_high_card(cards):
+
+        dist = Evaluator.hand_dist(cards)
+        for i in range(1,11): #low ace to 10 minimum straight values
+            if all([dist[i+k] == 1 for k in range(5)]):
+                return i+4
+        return None
+
+    @staticmethod
+    def card_count(cards, num_of_a_kind, exclude=None):
+
+
+        dist = Evaluator.hand_dist(cards)
+        for i in range(2,15):
+            if i == exclude:
+                continue
+            if dist[i] == num_of_a_kind:
+                return i
+        return None
+
+    @staticmethod
+    def eval_hand(cards): #straight+royal flush = 8+highcard; 4kind = 7+value; fullhouse = 6+high3kind+high2kind; flush = 5+value; straight = 4+highcard; 3kind = 3+value; twopair = 2+value+value; pair = 1+value; high = 0+value
+        #returns XYYZZ; X=hand id YY = high card if applicable ZZ = secondary high card if applicable (full house, two pair)
+
+        uh = []
+        for card in cards:
+            if card.value in face_cards:
+                uh.append(Card(face_cards[card.value], card.suit))
+            else:
+                uh.append(card)
+
+        if Evaluator.straight_high_card(uh) is not None and Evaluator.flush_high_card(uh):
+            #straight flush
+            return int("8{:02d}00".format(Evaluator.straight_high_card(uh)))
+        if Evaluator.card_count(uh, 4) is not None:
+            #four of a kind
+            return int("7{:02d}00".format(Evaluator.card_count(uh, 4)))
+        if Evaluator.card_count(uh, 3) is not None and Evaluator.card_count(uh, 2) is not None:
+            #full house
+            return int("6{:02d}{:02d}".format(Evaluator.card_count(uh, 3), Evaluator.card_count(uh, 2)))
+        if Evaluator.flush_high_card(uh):
+            #flush
+            return int("5{:02d}00".format(Evaluator.flush_high_card(uh)))
+        if Evaluator.straight_high_card(uh) is not None:
+            #straight
+            return int("4{:02d}00".format(Evaluator.straight_high_card(uh)))
+        if Evaluator.card_count(uh, 3) is not None:
+            #three of a kind
+            return int("3{:02d}00".format(Evaluator.card_count(uh, 3)))
+        pair1 = Evaluator.card_count(uh,2)
+        if pair1 is not None:
+            #at least one pair
+            if Evaluator.card_count(uh, 2, exclude=pair1) is not None:
+                #two pair
+                return int("2{:02d}{:02d}".format(Evaluator.card_count(uh,2,exclude=pair1),Evaluator.card_count(uh,2)))
+            return int("1{:02d}00".format(Evaluator.card_count(uh,2)))
+        #nothing but high card
+        return int("{:02d}00".format(Evaluator.high_card(uh)))
+
+
+
+
+class Player:
+
+    def __init__(self, wealth, name):
+        self.wealth = wealth
+        self.name = name
+
+        self.hand = []
+        self.best_hand = []
+        self.in_pot = 0
+        self.is_folded = False
+
+    def print_hand(self):
+        for card in self.hand:
+            card.print_card()
+            print(" ", end='')
+        print()
+
+    def make_move(self, pid, top_bet):
+        while True:
+            try:
+                move = int(input(f"(P{pid}) {self.name}, make a move. (1=bet/raise, 2=check/call, 3=fold, 4=view cards and balance): "))
+            except ValueError:
+                print("That's not an integer. ", end="")
+            else:
+                if move == 1:
+                    while True:
+                        try:
+                            bet = int(input("How much do you want to bet/raise? "))
+                        except ValueError:
+                            print("That's not an integer. ", end="")
+                        else:
+                            break
+                    amount = top_bet - self.in_pot + bet
+                    if self.wealth < amount:
+                        print(f"You do not have enough money to do that. You have {self.wealth}.")
+                    else:
+                        self.wealth -= amount
+                        self.in_pot += amount
+                        break
+
+                elif move == 2:
+                    amount = top_bet - self.in_pot
+                    if self.wealth < amount:
+                        print(f"You do not have enough money to do that. You have {self.wealth}.")
+                    else:
+                        self.wealth -= amount
+                        self.in_pot += amount
+                        break
+
+                elif move == 3:
+                    self.is_folded = True
+                    break
+
+                elif move == 4:
+                    self.print_hand()
+                    print(f"Balance: {self.wealth}")
+
+        return move
+
+    def get_best_hand(self, flop):
+        loc_flop = []
+        for card in flop:
+            loc_flop.append(card)
+        loc_flop.append(self.hand[0])
+        loc_flop.append(self.hand[1])
+
+        for card in loc_flop:
+            card.print_card()
+        print()
+
+
+        val = 0
+        combos = list(itertools.combinations(loc_flop, 5))
+
+        for combo in combos:
+            eval = Evaluator.eval_hand(combo)
+            if eval > val:
+                val = eval
+
+        self.best_hand = val
+
+
+
+class AiPlayer:
+
+    def __init__(self, wealth, name):
+        self.wealth = wealth
+        self.name = name
+
+        self.hand = []
+        self.best_hand = []
+        self.in_pot = 0
+        self.is_folded = False
+
+
+    def make_move(self, pid, top_bet):
+        move = str(self.get_move(pid, top_bet))
+
+        if move[0] == '1':
+            amount = top_bet - self.in_pot + sum([int(move[i+1]) for i in range(len(move)-1)])
+            if self.wealth < amount:
+                print(f"You do not have enough money to do that. You have {self.wealth}.")
+            else:
+                self.wealth -= amount
+                self.in_pot += amount
+        elif move[0] == '2':
+            amount = top_bet - self.in_pot
+            if self.wealth < amount:
+                print(f"You do not have enough money to do that. You have {self.wealth}.")
+            else:
+                self.wealth -= amount
+                self.in_pot += amount
+        elif move[0] == '3':
+            self.is_folded = True
+
+        return int(str(move)[0])
+
+    def get_move(self, pid, top_bet):
+
+        # HAHAHA OH NO
+
+        #temporary
+        val = 0
+        for card in self.hand:
+            card_value = card.value
+            if card.value in face_cards:
+                card_value = face_cards[card.value]
+            val += card_value
+
+        if val <= 8:
+            return 3
+        elif 8 < val <= 20:
+            return 2
+        elif 20 < val <= 24:
+            return 15 #bet, 5%
+        else:
+            return 115 #bet, 15%
+
+    def get_best_hand(self, flop):
+        loc_flop = []
+        for card in flop:
+            loc_flop.append(card)
+        loc_flop.append(self.hand[0])
+        loc_flop.append(self.hand[1])
+
+        print("THIS IS AI")
+
+        val = 0
+        combos = list(itertools.combinations(loc_flop, 5))
+
+        for combo in combos:
+            eval = Evaluator.eval_hand(combo)
+            if eval > val:
+                val = eval
+
+        self.best_hand = val
+
+
+
 
 class Card:
 
@@ -93,6 +359,9 @@ class Game:
                 player.hand = []
             self.is_round = True
             self.flop = []
+            self.deck = Deck()
+            self.deck.shuffle_deck()
+            self.pot = 0
 
             #round
             if self.is_round:
@@ -236,18 +505,25 @@ class Game:
                     player = self.players[id]
                     loc_flop = []
                     for card in self.flop:
-                        card.print_card()
                         loc_flop.append(card)
-                    print()
                     player.get_best_hand(loc_flop)
                     scores[id] = player.best_hand
 
 
                 # COMPARE SCORES AND DETERMINE WINNER
-                print(scores)
+                top = max(scores.values())
+                winners = {}
+                for i in scores.keys():
+                    print(scores[i])
+                    if scores[i] == top:
+                        winners[i] = scores[i]
 
+                print(self.pot)
+                for winner in winners.keys():
+                    print(winner)
+                    self.players[winner].wealth += round(self.pot / len(winners))
 
-
+                #UHHHHH doesnt work probably
 
 
 
