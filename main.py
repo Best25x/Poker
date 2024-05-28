@@ -1,6 +1,7 @@
 # oh boy here we go
 import math
 import itertools
+import time
 
 import numpy as np
 
@@ -214,20 +215,17 @@ class AiPlayer:
     def make_move(self, pid, top_bet, round, flop):
         move, bet = self.get_move(top_bet, round, flop)
 
+        print(f"(P{pid}) {self.name} is thinking...")
+        time.sleep(1)
+
         if move == 1:
             amount = top_bet - self.in_pot + bet
-            if self.wealth < amount:
-                print(f"You do not have enough money to do that. You have {self.wealth}.")
-            else:
-                self.wealth -= amount
-                self.in_pot += amount
+            self.wealth -= amount
+            self.in_pot += amount
         elif move == 2:
             amount = top_bet - self.in_pot
-            if self.wealth < amount:
-                print(f"You do not have enough money to do that. You have {self.wealth}.")
-            else:
-                self.wealth -= amount
-                self.in_pot += amount
+            self.wealth -= amount
+            self.in_pot += amount
         elif move == 3:
             self.is_folded = True
 
@@ -378,13 +376,13 @@ class Deck:
 
 # GAME
 class Game:
-    small_blind = 5
-    big_blind = 10
 
-    def __init__(self, player_count, start_wealth, is_manual):
+    def __init__(self, player_count, start_wealth, is_manual, small_blind=5, big_blind=10):
         self.player_count = player_count
         self.start_wealth = start_wealth
         self.is_manual = is_manual
+        self.small_blind = small_blind
+        self.big_blind = big_blind
 
         self.deck = Deck()
         self.pot = 0
@@ -423,16 +421,16 @@ class Game:
 
                 #LOOP THROUGH BLINDS AND ELIMINATE BROKE PEOPLE
                 print(f"(P{dealer_id}) {self.players[dealer_id].name} is dealing.")
-                while self.get_blind(Game.small_blind, self.players[small_blind_id]) == False:
+                while self.get_blind(self.small_blind, self.players[small_blind_id]) == False:
                     print(f"(P{small_blind_id}) {self.players[small_blind_id].name} couldn't afford to play.")
                     small_blind_id = (small_blind_id % self.player_count) + 1#NO 0th PLAYER
                     big_blind_id = (big_blind_id % self.player_count) + 1#NO 0th PLAYER
-                print(f"(P{small_blind_id}) {self.players[small_blind_id].name} pays small blind ({Game.small_blind}).")
+                print(f"(P{small_blind_id}) {self.players[small_blind_id].name} pays small blind ({self.small_blind}).")
 
-                while self.get_blind(Game.big_blind, self.players[big_blind_id]) == False:
+                while self.get_blind(self.big_blind, self.players[big_blind_id]) == False:
                     print(f"(P{big_blind_id}) {self.players[big_blind_id].name} couldn't afford to play.")
                     big_blind_id = (big_blind_id % self.player_count) + 1#NO 0th PLAYER
-                print(f"(P{big_blind_id}) {self.players[big_blind_id].name} pays big blind ({Game.big_blind}).")
+                print(f"(P{big_blind_id}) {self.players[big_blind_id].name} pays big blind ({self.big_blind}).")
 
                 new_line()
 
@@ -494,7 +492,7 @@ class Game:
                 new_line()
 
                 #bet flop
-                self.run_betting(big_blind_id, 2)
+                self.run_betting(dealer_id, 2)
 
                 #check_winner
                 self.check_winner()
@@ -520,7 +518,7 @@ class Game:
                 new_line()
 
                 #bet turn
-                self.run_betting(big_blind_id, 3)
+                self.run_betting(dealer_id, 3)
 
                 # check_winner
                 self.check_winner()
@@ -547,7 +545,7 @@ class Game:
                 new_line()
 
                 #bet river
-                self.run_betting(big_blind_id, 4)
+                self.run_betting(dealer_id, 4)
 
                 # check_winner
                 self.check_winner()
@@ -722,7 +720,7 @@ manual_game = bool(int(input("Is this a manual input game? (0 = no, 1 = yes): ")
 if manual_game == 1:
     print("BEWARE: if you try to see the cards of other players, the cards displayed are NOT ACCURATE - the game simply generates placeholder cards that you will then overwrite manually in Showdown. The balance should be correct though :)")
 new_line()
-game = Game(3, 1000, manual_game) #player_count has to be >= 3
+game = Game(5, 100, manual_game, small_blind=5, big_blind=10) #player_count has to be >= 3
 game.main()
 
 
