@@ -4,10 +4,19 @@ import itertools
 import time
 import numpy as np
 
+def print_title():
+    print("""
+░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+░░████████╗███████╗██╗░░██╗░█████╗░░██████╗░░░░░░██╗░░██╗░█████╗░██╗░░░░░██████╗░██╗███████╗███╗░░░███╗░░░░░░░█████╗░██╗░░
+░░╚══██╔══╝██╔════╝╚██╗██╔╝██╔══██╗██╔════╝░░░░░░██║░░██║██╔══██╗██║░░░░░██╔══██╗╚█║██╔════╝████╗░████║░░░░░░██╔══██╗██║░░
+░░░░░██║░░░█████╗░░░╚███╔╝░███████║╚█████╗░░░░░░░███████║██║░░██║██║░░░░░██║░░██║░╚╝█████╗░░██╔████╔██║░░░░░░███████║██║░░
+░░░░░██║░░░██╔══╝░░░██╔██╗░██╔══██║░╚═══██╗░░░░░░██╔══██║██║░░██║██║░░░░░██║░░██║░░░██╔══╝░░██║╚██╔╝██║░░░░░░██╔══██║██║░░
+░░░░░██║░░░███████╗██╔╝╚██╗██║░░██║██████╔╝░░░░░░██║░░██║╚█████╔╝███████╗██████╔╝░░░███████╗██║░╚═╝░██║░░░░░░██║░░██║██║░░
+░░░░░╚═╝░░░╚══════╝╚═╝░░╚═╝╚═╝░░╚═╝╚═════╝░░░░░░░╚═╝░░╚═╝░╚════╝░╚══════╝╚═════╝░░░░╚══════╝╚═╝░░░░░╚═╝░░░░░░╚═╝░░╚═╝╚═╝░░
+░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+""")
 
-#ADD BIG BANNER
-#CHANGE PRINT CARD FUNCTION FOR NON MANUAL INPUT GAME
-#IMRPOVE AI
+
 
 face_cards = {
     10: 'T',
@@ -327,7 +336,12 @@ class Card:
         self.suit = suit
 
     def print_card(self):
+        # value = "Ten" if self.value == 'T' else "Jack" if self.value == 'J' else "Queen" if self.value == 'Q' else "King" if self.value == 'K' else "Ace" if self.value == 'A' else self.value
+        # suit = "Hearts" if self.suit == 'H' else "Spades" if self.suit == 'S' else "Diamonds" if self.suit == 'D' else 'Clubs'
+        # print(f"{value} of {suit}", end='')
         print(f"{self.value}{self.suit}", end='')
+
+        #not sure if I like the way that looks... ill keep the other way commented out for now
 
 class Deck:
 
@@ -713,6 +727,10 @@ def new_line():
     print("--------------------------------------")
 
 
+
+
+
+print_title()
 manual_game = bool(int(input("Is this a manual input game? (0 = no, 1 = yes): ")))
 if manual_game == 1:
     print("BEWARE: if you try to see the cards of other players, the cards displayed are NOT ACCURATE - the game simply generates placeholder cards that you will then overwrite manually in Showdown. The balance should be correct though :)")
