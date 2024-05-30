@@ -251,19 +251,16 @@ class AiPlayer:
 
             if round == 1:
             #PRE FLOP ROUND
-
-                if hand_val > 24:
-                    return 1, big_blind*2 #raise by uhh
-
-                elif hand_val > 20:
-                    return 1, big_blind #raise by uhh
-
-                elif hand_val > 8:
-                    return 2, 0 #check
-
-                else:
-                    return 3, 0 #fold
-
+                c1 = self.hand[0]
+                c2 = self.hand[1]
+                if (c1.value == 'K' or c1.value == 'Q' or c1.value == 'A') and (c2.value == 'K' or c2.value == 'Q' or c2.value == 'A'):
+                    return 1, big_blind #raise by big blind
+                if c1.value is type(str) or c2.value is type(str):
+                    return 2, 0
+                elif c1.value == 'A' or c2.value == 'A':
+                    if c1.suit == c2.suit or hand_val >= 10:
+                        return 2, 0
+                return 3, 0
 
             else:
                 #at least 3 cards in community cards
@@ -568,7 +565,13 @@ class Game:
 
                 winnings = self.pot / len(winners)
 
-                #PRINT THE OTHER WINNING PLAYER'S CARDS
+                for id in [id for id in self.players.keys() if not self.players[id].is_folded]:
+                    player = self.players[id]
+                    print(f"(P{id}) {player.name} had ", end='')
+                    player.hand[0].print_card()
+                    print(" and ", end='')
+                    player.hand[1].print_card()
+                    print("!")
 
                 if len(winners) > 1:
                     print("SPLIT POT: ", end='')
@@ -703,7 +706,7 @@ manual_game = bool(int(input("Is this a manual input game? (0 = no, 1 = yes): ")
 if manual_game == 1:
     print("BEWARE: if you try to see the cards of other players, the cards displayed are NOT ACCURATE - the game simply generates placeholder cards that you will then overwrite manually in Showdown. The balance should be correct though :)")
 new_line()
-game = Game(2, 1000, manual_game)
+game = Game(5, 1000, manual_game)
 game.main()
 
 
