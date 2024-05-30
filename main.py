@@ -17,6 +17,9 @@ def print_title():
 """)
 
 
+    #PRINTING SHORTHAND CARDS IS DEFAULT, TO TOGGLE TO LONG CARD NAMES, UNCOMMENT LINES 343-345 AND COMMENT OUT LINE 348
+
+
 
 face_cards = {
     10: 'T',
@@ -336,9 +339,12 @@ class Card:
         self.suit = suit
 
     def print_card(self):
+        #uncomment these three lines for clear cards
         # value = "Ten" if self.value == 'T' else "Jack" if self.value == 'J' else "Queen" if self.value == 'Q' else "King" if self.value == 'K' else "Ace" if self.value == 'A' else self.value
         # suit = "Hearts" if self.suit == 'H' else "Spades" if self.suit == 'S' else "Diamonds" if self.suit == 'D' else 'Clubs'
         # print(f"{value} of {suit}", end='')
+
+        #uncomment this one line for shorthand cards
         print(f"{self.value}{self.suit}", end='')
 
         #not sure if I like the way that looks... ill keep the other way commented out for now
