@@ -2,11 +2,7 @@
 import math
 import itertools
 import time
-
 import numpy as np
-
-
-
 
 face_cards = {
     10: 'T',
@@ -137,7 +133,7 @@ class Player:
             print(" ", end='')
         print()
 
-    def make_move(self, pid, top_bet, round, flop):
+    def make_move(self, pid, top_bet, round, flop, big_blind):
         while True:
             try:
                 move = int(input(f"(P{pid}) {self.name}, make a move. (1=bet/raise, 2=check/call, 3=fold, 4=view cards and balance): "))
@@ -212,8 +208,8 @@ class AiPlayer:
         self.is_folded = False
 
 
-    def make_move(self, pid, top_bet, round, flop):
-        move, bet = self.get_move(top_bet, round, flop)
+    def make_move(self, pid, top_bet, round, flop, big_blind):
+        move, bet = self.get_move(top_bet, round, flop, big_blind)
 
         print(f"(P{pid}) {self.name} is thinking...")
         time.sleep(1)
@@ -232,7 +228,7 @@ class AiPlayer:
 
         return move
 
-    def get_move(self, top_bet, round, flop):
+    def get_move(self, top_bet, round, flop, big_blind):
 
         # OH NO
 
@@ -257,16 +253,10 @@ class AiPlayer:
             #PRE FLOP ROUND
 
                 if hand_val > 24:
-                    uhh = math.floor(max_raise * 0.05)
-                    if uhh == 0:
-                        return 2, 0 #check
-                    return 1, uhh #raise by uhh
+                    return 1, big_blind*2 #raise by uhh
 
                 elif hand_val > 20:
-                    uhh = math.floor(max_raise * 0.02)
-                    if uhh == 0:
-                        return 2, 0 #check
-                    return 1, uhh #raise by uhh
+                    return 1, big_blind #raise by uhh
 
                 elif hand_val > 8:
                     return 2, 0 #check
@@ -280,22 +270,13 @@ class AiPlayer:
                 self.get_best_hand(flop)
 
                 if self.best_hand > 30000: #three of a kind or higher
-                    uhh = math.floor(max_raise * 0.2)
-                    if uhh == 0:
-                        return 2, 0 #check
-                    return 1, uhh #raise
+                    return 1, big_blind*2 #raise
 
                 elif self.best_hand > 20000: #two pair
-                    uhh = math.floor(max_raise * 0.1)
-                    if uhh == 0:
-                        return 2, 0  #check
-                    return 1, uhh  # raise
+                    return 1, big_blind  # raise
                 elif self.best_hand > 10000: #pair
                     if top_bet == 0:
-                        uhh = math.floor(max_raise * 0.05)
-                        if uhh == 0:
-                            return 2, 0  # check
-                        return 1, uhh
+                        return 1, big_blind #raise
                     return 2, 0 #check
 
                 elif self.best_hand >= 1000: #high card = facecard
@@ -587,6 +568,8 @@ class Game:
 
                 winnings = self.pot / len(winners)
 
+                #PRINT THE OTHER WINNING PLAYER'S CARDS
+
                 if len(winners) > 1:
                     print("SPLIT POT: ", end='')
                     for winner in winners.keys():
@@ -642,7 +625,7 @@ class Game:
             index = ((big_blind_id + i) % self.player_count) + 1#NO 0th PLAYER
             player = self.players[index]
             if not player.is_folded:
-                bet_index = player.make_move(index, self.top_bet, round, self.flop)
+                bet_index = player.make_move(index, self.top_bet, round, self.flop, self.big_blind)
                 self.update_top_bet()
                 print(f"(P{index}) {player.name} has {f'bet/raised to {self.top_bet}' if bet_index == 1 else f'checked/called {self.top_bet}' if bet_index == 2 else 'folded'}.")
                 new_line()
@@ -659,7 +642,7 @@ class Game:
             index = ((index) % self.player_count) + 1
             player = self.players[index]
             if not player.is_folded:
-                bet_index = player.make_move(index, self.top_bet, round, self.flop)
+                bet_index = player.make_move(index, self.top_bet, round, self.flop, self.big_blind)
                 self.update_top_bet()
                 print(f"(P{index}) {player.name} has {f'bet/raised to {self.top_bet}' if bet_index == 1 else f'checked/called {self.top_bet}' if bet_index == 2 else 'folded'}.")
                 new_line()
@@ -720,7 +703,7 @@ manual_game = bool(int(input("Is this a manual input game? (0 = no, 1 = yes): ")
 if manual_game == 1:
     print("BEWARE: if you try to see the cards of other players, the cards displayed are NOT ACCURATE - the game simply generates placeholder cards that you will then overwrite manually in Showdown. The balance should be correct though :)")
 new_line()
-game = Game(5, 100, manual_game, small_blind=5, big_blind=10) #player_count has to be >= 3
+game = Game(2, 1000, manual_game)
 game.main()
 
 
