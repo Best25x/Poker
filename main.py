@@ -4,6 +4,11 @@ import itertools
 import time
 import numpy as np
 
+
+#ADD BIG BANNER
+#CHANGE PRINT CARD FUNCTION FOR NON MANUAL INPUT GAME
+#IMRPOVE AI
+
 face_cards = {
     10: 'T',
     11: 'J',
@@ -253,13 +258,19 @@ class AiPlayer:
             #PRE FLOP ROUND
                 c1 = self.hand[0]
                 c2 = self.hand[1]
-                if (c1.value == 'K' or c1.value == 'Q' or c1.value == 'A') and (c2.value == 'K' or c2.value == 'Q' or c2.value == 'A'):
+                if c1.value == c2.value:
                     return 1, big_blind #raise by big blind
-                if c1.value is type(str) or c2.value is type(str):
+                elif c1.value in ['A','K','Q'] and c2.value in ['A','K','Q']:
+                    return 1, big_blind*2 #raise by 2*big blind
+                elif c1.value in ['A','K','Q','J'] or c2.value in ['A','K','Q','J']:
+                    if top_bet <= big_blind:
+                        return 1, big_blind #raise empty pot
                     return 2, 0
                 elif c1.value == 'A' or c2.value == 'A':
-                    if c1.suit == c2.suit or hand_val >= 10:
-                        return 2, 0
+                    if c1.suit == c2.suit or hand_val >= 22: #if suited or a+anything 8 or above
+                        if top_bet <= big_blind:
+                            return 1, big_blind #raise empty pot
+                    return 2, 0
                 return 3, 0
 
             else:
@@ -706,7 +717,7 @@ manual_game = bool(int(input("Is this a manual input game? (0 = no, 1 = yes): ")
 if manual_game == 1:
     print("BEWARE: if you try to see the cards of other players, the cards displayed are NOT ACCURATE - the game simply generates placeholder cards that you will then overwrite manually in Showdown. The balance should be correct though :)")
 new_line()
-game = Game(5, 1000, manual_game)
+game = Game(5, 1000, manual_game, small_blind=1, big_blind=2)
 game.main()
 
 
