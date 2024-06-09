@@ -741,7 +741,7 @@ manual_game = bool(int(input("Is this a manual input game? (0 = no, 1 = yes): ")
 if manual_game == 1:
     print("BEWARE: if you try to see the cards of other players, the cards displayed are NOT ACCURATE - the game simply generates placeholder cards that you will then overwrite manually in Showdown. The balance should be correct though :)")
 new_line()
-game = Game(5, 1000, manual_game, small_blind=1, big_blind=2)
+game = Game(3, 100, manual_game, small_blind=5, big_blind=10)
 game.main()
 
 
